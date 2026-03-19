@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "postinstall": "patch-package"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "1.2.25",
+    "opencode-ag-auth": "1.6.3"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.0"
+  }
+}

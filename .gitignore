@@ -1,0 +1,40 @@
+# File akun & token (JANGAN pernah di-commit)
+antigravity-accounts.json
+antigravity-accounts.json.backup
+antigravity-accounts.json.bak
+antigravity-accounts.json.*.tmp
+antigravity-signature-cache.json
+*.backup
+*.bak
+
+# File debug/script personal
+antigravity-web-server.js
+antigravity-web.html
+check-quota-debug.js
+inspect-native.js
+
+# Config alternatif (mungkin ada token)
+antigravity.stable.json
+antigravity.turbo.json
+opencode.jsonc
+
+# Docs internal (info sensitif)
+NATIVE_INTEGRATION_PLAN.md
+TIMELINE_UPDATE.md
+ARSITEKTUR_PLUGIN.md
+
+# Misc
+bun.lock
+nul
+
+# Node modules
+node_modules/
+
+# Log
+antigravity-logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+.gitignore
