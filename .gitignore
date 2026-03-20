@@ -8,14 +8,11 @@ antigravity-signature-cache.json
 *.bak
 
 # File debug/script personal
-antigravity-web-server.js
 antigravity-web.html
 check-quota-debug.js
 inspect-native.js
 
-# Config alternatif (mungkin ada token)
-antigravity.stable.json
-antigravity.turbo.json
+# Config alternatif
 opencode.jsonc
 
 # Docs internal (info sensitif)
