@@ -6,7 +6,7 @@
   "provider": {
     "google": {
       "models": {
-        "antigravity-gemini-3.1-pro": {
+        "gemini-3.1-pro": {
           "name": "Gemini 3.1 Pro (Antigravity)",
           "limit": { "context": 1048576, "output": 65535 },
           "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
@@ -15,7 +15,7 @@
             "high": { "thinkingLevel": "high" }
           }
         },
-        "antigravity-gemini-3-flash": {
+        "gemini-3-flash": {
           "name": "Gemini 3 Flash (Antigravity)",
           "limit": { "context": 1048576, "output": 65536 },
           "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
@@ -26,12 +26,12 @@
             "high": { "thinkingLevel": "high" }
           }
         },
-        "antigravity-claude-sonnet-4-6": {
+        "claude-sonnet-4-6": {
           "name": "Claude Sonnet 4.6 (Antigravity)",
           "limit": { "context": 200000, "output": 64000 },
           "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] }
         },
-        "antigravity-claude-sonnet-4-6-thinking": {
+        "claude-sonnet-4-6-thinking": {
           "name": "Claude Sonnet 4.6 Thinking (Antigravity)",
           "limit": { "context": 200000, "output": 64000 },
           "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
@@ -40,7 +40,7 @@
             "max": { "thinkingConfig": { "thinkingBudget": 32768 } }
           }
         },
-        "antigravity-claude-opus-4-6-thinking": {
+        "claude-opus-4-6-thinking": {
           "name": "Claude Opus 4.6 Thinking (Antigravity)",
           "limit": { "context": 200000, "output": 64000 },
           "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },

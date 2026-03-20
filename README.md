@@ -25,6 +25,14 @@ npm install
 
 Perintah ini otomatis menjalankan `patch-package` via `postinstall` script, sehingga semua patch custom ter-apply ke `node_modules`.
 
+### Model names yang dipakai di config
+
+- Gemini Antigravity: `google/gemini-3.1-pro`, `google/gemini-3-flash`
+- Claude Antigravity: `google/claude-sonnet-4-6`, `google/claude-sonnet-4-6-thinking`, `google/claude-opus-4-6-thinking`
+- Gemini CLI fallback/preview: `google/gemini-2.5-pro`, `google/gemini-2.5-flash`, `google/gemini-3.1-pro-preview`, `google/gemini-3-flash-preview`
+
+Model lama berbasis alias seperti `google/antigravity-gemini-3.1-pro` atau `google/antigravity-gemini-3-flash` sengaja tidak dipakai lagi di config utama agar konsisten dengan resolver plugin.
+
 ### 3. Login akun Google Anda
 
 ```bash
@@ -69,6 +77,17 @@ Semua opsi diatur di `antigravity.json`:
 | `switch_on_first_rate_limit` | `true` | Langsung pindah akun saat kena rate limit |
 | `account_selection_strategy` | `hybrid` | Pemilihan akun berbasis health score |
 | `scheduling_mode` | `cache_first` | Prioritas cache untuk efisiensi |
+
+## Alias lama yang masih didukung plugin
+
+Plugin masih punya beberapa alias lama untuk kompatibilitas, tetapi sebaiknya tidak dipakai di config utama:
+
+- Gemini legacy: `gemini-pro`, `gemini-flash`
+- Gemini preview redirects: `gemini-2.5-pro-preview`, `gemini-2.5-flash-preview`, `gemini-3.1-pro-preview-customtools`
+- Gemini Antigravity legacy: `antigravity-gemini-3.1-pro`, `antigravity-gemini-3-flash`
+- Claude compatibility aliases: `gemini-claude-sonnet-4-6`, `gemini-claude-sonnet-4-6-thinking-*`, `gemini-claude-opus-4-6-thinking-*`
+
+Config repo ini sudah dirapikan agar memakai nama model yang paling langsung: Gemini tanpa prefix `antigravity-`, dan Claude memakai nama `claude-*` secara langsung.
 
 Untuk mematikan `delete_account_on_403_tos` (disable saja, tidak hapus):
 
