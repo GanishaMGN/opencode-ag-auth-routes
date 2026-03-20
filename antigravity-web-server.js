@@ -116,10 +116,20 @@ function getAccountsSummary() {
 
 function getAccountsData() {
   if (!fs.existsSync(ACCOUNTS_PATH)) {
-    return { total: 0, enabled: 0, disabled: 0, verificationRequired: 0, items: [] };
+    return {
+      total: 0,
+      enabled: 0,
+      disabled: 0,
+      verificationRequired: 0,
+      activeIndex: 0,
+      activeIndexByFamily: { claude: 0, gemini: 0 },
+      items: [],
+    };
   }
   const payload = readJson(ACCOUNTS_PATH);
   const list = Array.isArray(payload.accounts) ? payload.accounts : [];
+  const activeIndex = typeof payload.activeIndex === "number" ? payload.activeIndex : 0;
+  const activeIndexByFamily = ensureObject(payload.activeIndexByFamily);
   let enabled = 0;
   let disabled = 0;
   let verificationRequired = 0;
@@ -148,6 +158,9 @@ function getAccountsData() {
       email: account?.email || `Account ${idx + 1}`,
       enabled: isEnabled,
       verificationRequired: account?.verificationRequired === true,
+      isActiveOverall: idx === activeIndex,
+      isActiveGemini: idx === activeIndexByFamily.gemini,
+      isActiveClaude: idx === activeIndexByFamily.claude,
       lastUsed: typeof account?.lastUsed === "number" ? account.lastUsed : null,
       addedAt: typeof account?.addedAt === "number" ? account.addedAt : null,
       userAgent: account?.fingerprint?.userAgent || "-",
@@ -161,6 +174,8 @@ function getAccountsData() {
     enabled,
     disabled,
     verificationRequired,
+    activeIndex,
+    activeIndexByFamily,
     items,
   };
 }
@@ -228,6 +243,84 @@ function activateBestAccounts() {
     activeIndex: payload.activeIndex,
     activeIndexByFamily: payload.activeIndexByFamily,
     audit,
+  };
+}
+
+function setActiveAccount(index) {
+  const payload = readJson(ACCOUNTS_PATH);
+  const list = Array.isArray(payload.accounts) ? payload.accounts : [];
+  if (!Number.isInteger(index) || index < 0 || index >= list.length) {
+    throw new Error("Invalid account index");
+  }
+  payload.activeIndex = index;
+  payload.activeIndexByFamily = {
+    claude: index,
+    gemini: index,
+  };
+  writeJson(ACCOUNTS_PATH, payload);
+  return {
+    activeIndex: payload.activeIndex,
+    activeIndexByFamily: payload.activeIndexByFamily,
+    audit: buildAccountsAudit(payload),
+  };
+}
+
+function buildAccountsSnapshot(payload) {
+  const list = Array.isArray(payload.accounts) ? payload.accounts : [];
+  return {
+    version: payload.version ?? 4,
+    exportedAt: new Date().toISOString(),
+    activeIndex: typeof payload.activeIndex === "number" ? payload.activeIndex : 0,
+    activeIndexByFamily: ensureObject(payload.activeIndexByFamily),
+    accounts: list.map((account, index) => ({
+      index,
+      email: account?.email || `Account ${index + 1}`,
+      enabled: account?.enabled !== false,
+      verificationRequired: account?.verificationRequired === true,
+      addedAt: typeof account?.addedAt === "number" ? account.addedAt : null,
+      lastUsed: typeof account?.lastUsed === "number" ? account.lastUsed : null,
+      cachedQuota: ensureObject(account?.cachedQuota),
+      cachedQuotaUpdatedAt: typeof account?.cachedQuotaUpdatedAt === "number" ? account.cachedQuotaUpdatedAt : null,
+      rateLimitResetTimes: ensureObject(account?.rateLimitResetTimes),
+      fingerprint: {
+        userAgent: account?.fingerprint?.userAgent || "-",
+        apiClient: account?.fingerprint?.apiClient || "-",
+        clientMetadata: ensureObject(account?.fingerprint?.clientMetadata),
+      },
+    })),
+  };
+}
+
+function importAccountsSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+    throw new Error("Snapshot must be a JSON object");
+  }
+  const payload = readJson(ACCOUNTS_PATH);
+  const currentAccounts = Array.isArray(payload.accounts) ? payload.accounts : [];
+  const snapshotAccounts = Array.isArray(snapshot.accounts) ? snapshot.accounts : [];
+  let updated = 0;
+
+  for (const account of currentAccounts) {
+    const match = snapshotAccounts.find((item) => item?.email && item.email === account.email);
+    if (!match) continue;
+    account.enabled = match.enabled !== false;
+    account.verificationRequired = match.verificationRequired === true;
+    account.cachedQuota = ensureObject(match.cachedQuota);
+    account.cachedQuotaUpdatedAt = typeof match.cachedQuotaUpdatedAt === "number" ? match.cachedQuotaUpdatedAt : account.cachedQuotaUpdatedAt;
+    account.rateLimitResetTimes = ensureObject(match.rateLimitResetTimes);
+    updated += 1;
+  }
+
+  if (typeof snapshot.activeIndex === "number") {
+    payload.activeIndex = snapshot.activeIndex;
+  }
+  payload.activeIndexByFamily = ensureObject(snapshot.activeIndexByFamily);
+  writeJson(ACCOUNTS_PATH, payload);
+  return {
+    updated,
+    activeIndex: payload.activeIndex,
+    activeIndexByFamily: payload.activeIndexByFamily,
+    audit: buildAccountsAudit(payload),
   };
 }
 
@@ -414,6 +507,11 @@ function handleApi(req, res) {
     return sendJson(res, 200, buildAccountsAudit(payload));
   }
 
+  if (req.method === "GET" && req.url === "/api/accounts/snapshot") {
+    const payload = readJson(ACCOUNTS_PATH);
+    return sendJson(res, 200, buildAccountsSnapshot(payload));
+  }
+
   if (req.method === "POST" && req.url === "/api/config") {
     return readBody(req)
       .then((body) => {
@@ -529,6 +627,19 @@ function handleApi(req, res) {
     }
   }
 
+  if (req.method === "POST" && req.url === "/api/accounts/set-active") {
+    return readBody(req)
+      .then((body) => {
+        const result = setActiveAccount(Number(body.index));
+        return sendJson(res, 200, {
+          ok: true,
+          message: `Account #${Number(body.index) + 1} set as active for overall, Gemini, and Claude.`,
+          ...result,
+        });
+      })
+      .catch((error) => sendJson(res, 400, { ok: false, error: String(error.message || error) }));
+  }
+
   if (req.method === "POST" && req.url === "/api/accounts/maintain") {
     try {
       const output = runLocalMaintenance();
@@ -536,6 +647,19 @@ function handleApi(req, res) {
     } catch (error) {
       return sendJson(res, 400, { ok: false, error: String(error.message || error) });
     }
+  }
+
+  if (req.method === "POST" && req.url === "/api/accounts/snapshot/import") {
+    return readBody(req)
+      .then((body) => {
+        const result = importAccountsSnapshot(body);
+        return sendJson(res, 200, {
+          ok: true,
+          message: `Imported non-sensitive snapshot for ${result.updated} account(s).`,
+          ...result,
+        });
+      })
+      .catch((error) => sendJson(res, 400, { ok: false, error: String(error.message || error) }));
   }
 
   if (req.method === "GET" && req.url === "/api/health") {

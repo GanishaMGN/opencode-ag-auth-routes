@@ -219,6 +219,23 @@
       margin-bottom: 4px;
       color: #dbeafe;
     }
+    .account-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .snapshot-box {
+      margin-top: 12px;
+      border: 1px solid #47608a;
+      border-radius: 12px;
+      background: #10203a;
+      padding: 12px;
+    }
+    .snapshot-box textarea {
+      min-height: 180px;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -291,9 +308,15 @@
         <button id="btnAuditAccounts" class="secondary">Audit Accounts</button>
         <button id="btnActivateBest" class="secondary">Activate Best</button>
         <button id="btnMaintainAccounts" class="secondary">Maintain State</button>
+        <button id="btnExportSnapshot" class="secondary">Export Snapshot</button>
+        <button id="btnImportSnapshot" class="secondary">Import Snapshot</button>
       </div>
       <div id="accountsMeta" class="status" style="margin-top:8px"></div>
       <div id="accountsAudit" class="audit-box hidden"></div>
+      <div class="snapshot-box">
+        <label for="accountsSnapshot">Non-sensitive snapshot (tanpa refresh token)</label>
+        <textarea id="accountsSnapshot" placeholder="Export atau tempel snapshot di sini"></textarea>
+      </div>
       <div id="accountsContainer" class="accounts-list"></div>
     </section>
 
@@ -374,6 +397,10 @@
       const total = accounts?.total ?? 0;
       const enabled = accounts?.enabled ?? 0;
       const verification = accounts?.verificationRequired ?? 0;
+      const overall = typeof accounts?.activeIndex === "number" ? ` | Active overall #${accounts.activeIndex + 1}` : "";
+      const family = accounts?.activeIndexByFamily
+        ? ` | Gemini #${(accounts.activeIndexByFamily.gemini ?? 0) + 1} | Claude #${(accounts.activeIndexByFamily.claude ?? 0) + 1}`
+        : "";
 
       $("badgeAccounts").textContent = `accounts: ${enabled}/${total} enabled`;
       const verificationEl = $("badgeVerification");
@@ -404,7 +431,7 @@
       const container = $("accountsContainer");
       const meta = $("accountsMeta");
       const items = Array.isArray(accounts?.items) ? accounts.items : [];
-      meta.textContent = `Total ${accounts?.total ?? 0} akun | Enabled ${accounts?.enabled ?? 0} | Disabled ${accounts?.disabled ?? 0} | Needs verification ${accounts?.verificationRequired ?? 0}`;
+      meta.textContent = `Total ${accounts?.total ?? 0} akun | Enabled ${accounts?.enabled ?? 0} | Disabled ${accounts?.disabled ?? 0} | Needs verification ${accounts?.verificationRequired ?? 0}${overall}${family}`;
 
       if (items.length === 0) {
         container.innerHTML = '<div class="provider-box">Belum ada akun terdaftar.</div>';
@@ -425,6 +452,11 @@
         const verifyBadge = acc.verificationRequired
           ? '<span class="badge warn">needs verification</span>'
           : '<span class="badge ok">verified</span>';
+        const activeBadges = [
+          acc.isActiveOverall ? '<span class="badge ok">active overall</span>' : '',
+          acc.isActiveGemini ? '<span class="badge warn">active gemini</span>' : '',
+          acc.isActiveClaude ? '<span class="badge warn">active claude</span>' : ''
+        ].join('');
 
         return `
           <article class="account-card">
@@ -433,7 +465,7 @@
                 <div class="account-email">${escapeHtml(acc.email)}</div>
                 <div class="muted">#${acc.index + 1} | platform: ${escapeHtml(acc.platform || "-")}</div>
               </div>
-              <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">${statusBadge}${verifyBadge}</div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">${statusBadge}${verifyBadge}${activeBadges}</div>
             </div>
             <div class="kv">
               <div>Last used: ${escapeHtml(formatTimestamp(acc.lastUsed))}</div>
@@ -444,6 +476,9 @@
               <thead><tr><th>Family</th><th>Remaining</th><th>Reset</th><th>Models</th></tr></thead>
               <tbody>${quotaRows || '<tr><td colspan="4" class="muted">No quota cache</td></tr>'}</tbody>
             </table>
+            <div class="account-actions">
+              <button class="secondary" onclick="setAccountActive(${acc.index})">Set as Active</button>
+            </div>
           </article>`;
       }).join("");
     }
@@ -624,6 +659,43 @@
       setStatus("accountsMeta", (data.output || "Maintenance completed.").trim(), true);
     }
 
+    async function exportSnapshot() {
+      const res = await fetch("/api/accounts/snapshot");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed exporting snapshot");
+      $("accountsSnapshot").value = JSON.stringify(data, null, 2);
+      setStatus("accountsMeta", "Snapshot exported to textarea.", true);
+    }
+
+    async function importSnapshot() {
+      const raw = $("accountsSnapshot").value.trim();
+      if (!raw) throw new Error("Snapshot textarea is empty");
+      const parsed = JSON.parse(raw);
+      const res = await fetch("/api/accounts/snapshot/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed importing snapshot");
+      renderAudit(data.audit);
+      await loadAll();
+      setStatus("accountsMeta", data.message, true);
+    }
+
+    async function setAccountActive(index) {
+      const res = await fetch("/api/accounts/set-active", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ index })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed setting active account");
+      renderAudit(data.audit);
+      await loadAll();
+      setStatus("accountsMeta", data.message, true);
+    }
+
     async function loadAll() {
       const res = await fetch("/api/bootstrap");
       const data = await res.json();
@@ -694,6 +766,10 @@
     $("btnAuditAccounts").onclick = () => loadAudit().catch((e) => setStatus("accountsMeta", e.message, false));
     $("btnActivateBest").onclick = () => activateBest().catch((e) => setStatus("accountsMeta", e.message, false));
     $("btnMaintainAccounts").onclick = () => maintainAccounts().catch((e) => setStatus("accountsMeta", e.message, false));
+    $("btnExportSnapshot").onclick = () => exportSnapshot().catch((e) => setStatus("accountsMeta", e.message, false));
+    $("btnImportSnapshot").onclick = () => importSnapshot().catch((e) => setStatus("accountsMeta", e.message, false));
+
+    window.setAccountActive = (index) => setAccountActive(index).catch((e) => setStatus("accountsMeta", e.message, false));
 
     $("btnSaveRawAntigravity").onclick = async () => {
       try {
