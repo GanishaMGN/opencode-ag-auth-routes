@@ -47,6 +47,15 @@ Tidak ada akun bawaan di repo ini. Setiap pengguna wajib login dengan akun Googl
 opencode
 ```
 
+### Contoh command siap pakai
+
+```bash
+opencode run "hello" --model=google/gemini-3.1-pro
+opencode run "ringkas file ini" --model=google/gemini-3-flash
+opencode run "review perubahan ini" --model=google/claude-sonnet-4-6
+opencode run "analisis mendalam" --model=google/claude-opus-4-6-thinking
+```
+
 ---
 
 ## Struktur File Penting
@@ -129,6 +138,20 @@ set OPENCODE_ANTIGRAVITY_DELETE_ACCOUNT_ON_403_TOS=0
    git add patches/
    git commit -m "update patch to opencode-ag-auth@1.6.4"
    ```
+
+## Maintenance lokal
+
+Untuk merapikan state lokal setelah rename model atau patch update:
+
+```bash
+npm run maint:normalize-state
+```
+
+Script ini akan:
+
+- menormalkan key lama di `rateLimitResetTimes`
+- memastikan field cache object tetap valid
+- menulis ulang `antigravity-accounts.json` secara aman
 
 ---
 
