@@ -646,6 +646,70 @@ index db29782..9b5ed95 100644
  }
  // =============================================================================
  // Main Loader
+diff --git a/node_modules/opencode-ag-auth/dist/src/plugin/config/models.js b/node_modules/opencode-ag-auth/dist/src/plugin/config/models.js
+index 16cdb35..186c5b5 100644
+--- a/node_modules/opencode-ag-auth/dist/src/plugin/config/models.js
++++ b/node_modules/opencode-ag-auth/dist/src/plugin/config/models.js
+@@ -32,11 +32,27 @@ export const OPENCODE_MODEL_DEFINITIONS = {
+             high: { thinkingLevel: "high" },
+         },
+     },
++    "gemini-3-flash": {
++        name: "Gemini 3 Flash (Antigravity)",
++        limit: { context: 1048576, output: 65536 },
++        modalities: DEFAULT_MODALITIES,
++        variants: {
++            minimal: { thinkingLevel: "minimal" },
++            low: { thinkingLevel: "low" },
++            medium: { thinkingLevel: "medium" },
++            high: { thinkingLevel: "high" },
++        },
++    },
+     "antigravity-claude-sonnet-4-6": {
+         name: "Claude Sonnet 4.6 (Antigravity)",
+         limit: { context: 200000, output: 64000 },
+         modalities: DEFAULT_MODALITIES,
+     },
++    "claude-sonnet-4-6": {
++        name: "Claude Sonnet 4.6 (Antigravity)",
++        limit: { context: 200000, output: 64000 },
++        modalities: DEFAULT_MODALITIES,
++    },
+     "antigravity-claude-sonnet-4-6-thinking": {
+         name: "Claude Sonnet 4.6 Thinking (Antigravity)",
+         limit: { context: 200000, output: 64000 },
+@@ -46,6 +62,15 @@ export const OPENCODE_MODEL_DEFINITIONS = {
+             max: { thinkingConfig: { thinkingBudget: 32768 } },
+         },
+     },
++    "claude-sonnet-4-6-thinking": {
++        name: "Claude Sonnet 4.6 Thinking (Antigravity)",
++        limit: { context: 200000, output: 64000 },
++        modalities: DEFAULT_MODALITIES,
++        variants: {
++            low: { thinkingConfig: { thinkingBudget: 8192 } },
++            max: { thinkingConfig: { thinkingBudget: 32768 } },
++        },
++    },
+     "antigravity-claude-opus-4-6-thinking": {
+         name: "Claude Opus 4.6 Thinking (Antigravity)",
+         limit: { context: 200000, output: 64000 },
+@@ -55,6 +80,15 @@ export const OPENCODE_MODEL_DEFINITIONS = {
+             max: { thinkingConfig: { thinkingBudget: 32768 } },
+         },
+     },
++    "claude-opus-4-6-thinking": {
++        name: "Claude Opus 4.6 Thinking (Antigravity)",
++        limit: { context: 200000, output: 64000 },
++        modalities: DEFAULT_MODALITIES,
++        variants: {
++            low: { thinkingConfig: { thinkingBudget: 8192 } },
++            max: { thinkingConfig: { thinkingBudget: 32768 } },
++        },
++    },
+     "gemini-2.5-flash": {
+         name: "Gemini 2.5 Flash (Gemini CLI)",
+         limit: { context: 1048576, output: 65536 },
 diff --git a/node_modules/opencode-ag-auth/dist/src/plugin/config/schema.js b/node_modules/opencode-ag-auth/dist/src/plugin/config/schema.js
 index dbc2316..ac1f6f5 100644
 --- a/node_modules/opencode-ag-auth/dist/src/plugin/config/schema.js
@@ -1112,3 +1176,15 @@ index 56e0075..7dd2b66 100644
          if (!response.ok) {
              let errorText;
              try {
+diff --git a/node_modules/opencode-ag-auth/dist/src/plugin/transform/model-resolver.js b/node_modules/opencode-ag-auth/dist/src/plugin/transform/model-resolver.js
+index 8f71afc..5962fff 100644
+--- a/node_modules/opencode-ag-auth/dist/src/plugin/transform/model-resolver.js
++++ b/node_modules/opencode-ag-auth/dist/src/plugin/transform/model-resolver.js
+@@ -179,6 +179,7 @@ function isPureGeminiTextModel(modelWithoutQuota) {
+  * Examples:
+  * - "gemini-2.5-flash" → { quotaPreference: "antigravity" }
+  * - "gemini-3.1-pro-preview" → { quotaPreference: "antigravity" }
++ * - "gemini-3.1-pro-high" → { quotaPreference: "antigravity" }
+  * - "antigravity-gemini-3.1-pro-high" → { quotaPreference: "antigravity", explicitQuota: true }
+  * - "claude-sonnet-4-5-thinking-medium" → { quotaPreference: "antigravity" }
+  *
