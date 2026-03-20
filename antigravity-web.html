@@ -236,6 +236,34 @@
       min-height: 180px;
       margin-top: 8px;
     }
+    .accounts-summary {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid #395271;
+      border-radius: 10px;
+      background: #142746;
+    }
+    .summary-main {
+      min-width: 0;
+    }
+    .summary-email {
+      font-weight: 700;
+      color: #dbeafe;
+      word-break: break-word;
+    }
+    .summary-meta {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
   </style>
 </head>
 <body>
@@ -326,6 +354,7 @@
         <label for="accountsSnapshot">Non-sensitive snapshot (tanpa refresh token)</label>
         <textarea id="accountsSnapshot" placeholder="Export atau tempel snapshot di sini"></textarea>
       </div>
+      <div id="accountsSummary" class="accounts-summary"></div>
       <div id="accountsContainer" class="accounts-list"></div>
     </section>
 
@@ -438,14 +467,35 @@
 
     function renderAccounts(accounts) {
       const container = $("accountsContainer");
+      const summary = $("accountsSummary");
       const meta = $("accountsMeta");
       const items = Array.isArray(accounts?.items) ? accounts.items : [];
       meta.textContent = `Total ${accounts?.total ?? 0} akun | Enabled ${accounts?.enabled ?? 0} | Disabled ${accounts?.disabled ?? 0} | Needs verification ${accounts?.verificationRequired ?? 0}${overall}${family}`;
 
       if (items.length === 0) {
+        summary.innerHTML = "";
         container.innerHTML = '<div class="provider-box">Belum ada akun terdaftar.</div>';
         return;
       }
+
+      summary.innerHTML = items.map((acc) => {
+        const badges = [
+          acc.enabled ? '<span class="badge ok">enabled</span>' : '<span class="badge err">disabled</span>',
+          acc.verificationRequired ? '<span class="badge warn">needs verification</span>' : '',
+          acc.isActiveOverall ? '<span class="badge ok">active overall</span>' : '',
+          acc.isActiveGemini ? '<span class="badge warn">active gemini</span>' : '',
+          acc.isActiveClaude ? '<span class="badge warn">active claude</span>' : ''
+        ].join('');
+
+        return `
+          <div class="summary-row">
+            <div class="summary-main">
+              <div class="summary-email">#${acc.index + 1} - ${escapeHtml(acc.email)}</div>
+              <div class="summary-meta">Last used: ${escapeHtml(formatTimestamp(acc.lastUsed))} | Platform: ${escapeHtml(acc.platform || "-")}</div>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">${badges}</div>
+          </div>`;
+      }).join("");
 
       container.innerHTML = items.map((acc) => {
         const quotaRows = (acc.quota || []).map((q) => {
