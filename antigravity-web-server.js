@@ -165,6 +165,79 @@ function getAccountsData() {
   };
 }
 
+function safeFraction(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function scoreAccount(account) {
+  const cachedQuota = ensureObject(account?.cachedQuota);
+  const geminiPro = safeFraction(cachedQuota["gemini-pro"]?.remainingFraction);
+  const geminiFlash = safeFraction(cachedQuota["gemini-flash"]?.remainingFraction);
+  const claude = safeFraction(cachedQuota.claude?.remainingFraction);
+  const enabledBonus = account?.enabled === false ? -10 : 5;
+  return {
+    geminiPro,
+    geminiFlash,
+    claude,
+    overall: geminiPro + geminiFlash + claude + enabledBonus,
+    gemini: geminiPro + geminiFlash + enabledBonus,
+    claudeScore: claude + enabledBonus,
+  };
+}
+
+function buildAccountsAudit(payload) {
+  const list = Array.isArray(payload.accounts) ? payload.accounts : [];
+  const ranked = list
+    .map((account, index) => {
+      const scores = scoreAccount(account);
+      return {
+        index,
+        email: account?.email || `Account ${index + 1}`,
+        enabled: account?.enabled !== false,
+        lastUsed: typeof account?.lastUsed === "number" ? account.lastUsed : 0,
+        userAgent: account?.fingerprint?.userAgent || "-",
+        platform: account?.fingerprint?.clientMetadata?.platform || "-",
+        ...scores,
+      };
+    })
+    .sort((a, b) => b.overall - a.overall || b.lastUsed - a.lastUsed);
+
+  const byGemini = [...ranked].sort((a, b) => b.gemini - a.gemini || b.lastUsed - a.lastUsed);
+  const byClaude = [...ranked].sort((a, b) => b.claudeScore - a.claudeScore || b.lastUsed - a.lastUsed);
+
+  return {
+    activeIndex: typeof payload.activeIndex === "number" ? payload.activeIndex : 0,
+    activeIndexByFamily: ensureObject(payload.activeIndexByFamily),
+    recommendedOverall: ranked[0]?.index ?? -1,
+    recommendedGemini: byGemini[0]?.index ?? -1,
+    recommendedClaude: byClaude[0]?.index ?? -1,
+    ranked,
+  };
+}
+
+function activateBestAccounts() {
+  const payload = readJson(ACCOUNTS_PATH);
+  const audit = buildAccountsAudit(payload);
+  payload.activeIndex = audit.recommendedOverall;
+  payload.activeIndexByFamily = {
+    claude: audit.recommendedClaude,
+    gemini: audit.recommendedGemini,
+  };
+  writeJson(ACCOUNTS_PATH, payload);
+  return {
+    activeIndex: payload.activeIndex,
+    activeIndexByFamily: payload.activeIndexByFamily,
+    audit,
+  };
+}
+
+function runLocalMaintenance() {
+  return execSync("npm run maint:normalize-state", {
+    cwd: CONFIG_DIR,
+    encoding: "utf8",
+  });
+}
+
 function stripAnsi(input) {
   return String(input || "").replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "");
 }
@@ -336,6 +409,11 @@ function handleApi(req, res) {
     });
   }
 
+  if (req.method === "GET" && req.url === "/api/accounts/audit") {
+    const payload = readJson(ACCOUNTS_PATH);
+    return sendJson(res, 200, buildAccountsAudit(payload));
+  }
+
   if (req.method === "POST" && req.url === "/api/config") {
     return readBody(req)
       .then((body) => {
@@ -436,6 +514,28 @@ function handleApi(req, res) {
         });
       })
       .catch((error) => sendJson(res, 400, { ok: false, error: String(error.message || error) }));
+  }
+
+  if (req.method === "POST" && req.url === "/api/accounts/activate-best") {
+    try {
+      const result = activateBestAccounts();
+      return sendJson(res, 200, {
+        ok: true,
+        message: "Activated best-ranked accounts for overall, Gemini, and Claude.",
+        ...result,
+      });
+    } catch (error) {
+      return sendJson(res, 400, { ok: false, error: String(error.message || error) });
+    }
+  }
+
+  if (req.method === "POST" && req.url === "/api/accounts/maintain") {
+    try {
+      const output = runLocalMaintenance();
+      return sendJson(res, 200, { ok: true, output });
+    } catch (error) {
+      return sendJson(res, 400, { ok: false, error: String(error.message || error) });
+    }
   }
 
   if (req.method === "GET" && req.url === "/api/health") {

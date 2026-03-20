@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Antigravity Control Center</title>
+  <style>
+    :root {
+      --bg-0: #0b1220;
+      --bg-1: #0f172a;
+      --panel: #101a2d;
+      --panel-2: #13213a;
+      --line: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --brand: #3b82f6;
+      --brand-2: #0ea5e9;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --shadow: 0 12px 36px rgba(2, 6, 23, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: "Segoe UI", "Inter", sans-serif;
+      background:
+        radial-gradient(1200px 500px at 85% -10%, rgba(14, 165, 233, 0.25), transparent 60%),
+        radial-gradient(900px 500px at -10% -20%, rgba(59, 130, 246, 0.2), transparent 55%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-0));
+      min-height: 100vh;
+    }
+
+    .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px 28px; }
+    .hero {
+      background: linear-gradient(145deg, rgba(19,33,58,0.95), rgba(16,26,45,0.95));
+      border: 1px solid #3b4d70;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    .hero h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: 0.3px; }
+    .muted { color: var(--muted); }
+
+    .hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; }
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+    .badge {
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid #4a5f85;
+      background: #1a2b4d;
+      color: #dbeafe;
+      white-space: nowrap;
+    }
+    .badge.ok { background: #0f3d2a; border-color: #1f7a48; color: #bbf7d0; }
+    .badge.warn { background: #4a2f10; border-color: #a16207; color: #fde68a; }
+    .badge.err { background: #4a1d1d; border-color: #b91c1c; color: #fecaca; }
+
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    button {
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      color: white;
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 13px;
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+    button.secondary {
+      background: #253757;
+      border: 1px solid #486087;
+      color: #dbeafe;
+    }
+
+    .tabs { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+    .tab {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid #425a82;
+      background: #172847;
+      color: #cfe3ff;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, #2563eb, #0284c7);
+      border-color: transparent;
+      color: white;
+    }
+
+    .panel {
+      background: rgba(16, 26, 45, 0.96);
+      border: 1px solid #344a72;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .panel.hidden { display: none; }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 850px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .toolbar { justify-content: flex-start; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #47608a;
+      border-radius: 10px;
+      background: #162744;
+      color: var(--text);
+      padding: 10px;
+    }
+    textarea {
+      min-height: 260px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      line-height: 1.35;
+    }
+    .row-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+    .provider-box {
+      border: 1px solid #486087;
+      border-radius: 12px;
+      padding: 12px;
+      background: #132240;
+    }
+    .provider-title { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 6px; }
+    .switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #dbeafe;
+      font-size: 13px;
+    }
+
+    .status { margin-top: 8px; font-size: 13px; }
+    .status.ok { color: var(--ok); }
+    .status.err { color: #fca5a5; }
+
+    .accounts-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    @media (max-width: 980px) {
+      .accounts-list { grid-template-columns: 1fr; }
+    }
+    .account-card {
+      border: 1px solid #47608a;
+      border-radius: 12px;
+      background: #132240;
+      padding: 12px;
+    }
+    .account-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .account-email {
+      font-weight: 700;
+      font-size: 14px;
+      word-break: break-word;
+    }
+    .kv {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .quota-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .quota-table th,
+    .quota-table td {
+      text-align: left;
+      padding: 6px 5px;
+      border-bottom: 1px solid #31486d;
+    }
+    .quota-table th { color: #bfdbfe; font-weight: 600; }
+    .audit-box {
+      margin-top: 12px;
+      border: 1px solid #47608a;
+      border-radius: 12px;
+      background: #10203a;
+      padding: 12px;
+    }
+    .audit-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    @media (max-width: 850px) {
+      .audit-grid { grid-template-columns: 1fr; }
+    }
+    .audit-item {
+      border: 1px solid #395271;
+      border-radius: 10px;
+      padding: 10px;
+      background: #142746;
+    }
+    .audit-item strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #dbeafe;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <h1>Antigravity Control Center</h1>
+          <div class="muted">Web UI sebagai opsi tambahan. CLI tetap sumber utama dan tetap berjalan normal.</div>
+          <div class="badges" style="margin-top:10px">
+            <span id="badgeProfile" class="badge">profile: loading</span>
+            <span id="badgeAccounts" class="badge">accounts: -</span>
+            <span id="badgeVerification" class="badge">verification: -</span>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button id="btnProfileStable" class="secondary">Use Stable</button>
+          <button id="btnProfileTurbo" class="secondary">Use Turbo</button>
+          <button id="btnReload">Reload</button>
+        </div>
+      </div>
+      <div id="statusTop" class="status"></div>
+    </section>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="quick">Quick Tune</button>
+      <button class="tab" data-tab="accounts">Accounts & Quota</button>
+      <button class="tab" data-tab="providers">Providers</button>
+      <button class="tab" data-tab="advanced">Advanced JSON</button>
+    </div>
+
+    <section class="panel" id="panel-quick">
+      <h3 style="margin-top:0">Anti-loop Quick Tune</h3>
+      <div class="muted">Atur retry budget, wait budget, dan quota threshold tanpa edit JSON manual.</div>
+      <div class="grid-2" style="margin-top:12px">
+        <div>
+          <label>Account Selection Strategy</label>
+          <select id="account_selection_strategy">
+            <option value="sticky">sticky</option>
+            <option value="round-robin">round-robin</option>
+            <option value="hybrid">hybrid</option>
+          </select>
+        </div>
+        <div>
+          <label>Scheduling Mode</label>
+          <select id="scheduling_mode">
+            <option value="cache_first">cache_first</option>
+            <option value="balance">balance</option>
+            <option value="performance_first">performance_first</option>
+          </select>
+        </div>
+        <div><label>max_rate_limit_wait_seconds</label><input id="max_rate_limit_wait_seconds" type="number" /></div>
+        <div><label>max_cache_first_wait_seconds</label><input id="max_cache_first_wait_seconds" type="number" /></div>
+        <div><label>default_retry_after_seconds</label><input id="default_retry_after_seconds" type="number" /></div>
+        <div><label>max_backoff_seconds</label><input id="max_backoff_seconds" type="number" /></div>
+        <div><label>request_jitter_max_ms</label><input id="request_jitter_max_ms" type="number" /></div>
+        <div><label>empty_response_max_attempts</label><input id="empty_response_max_attempts" type="number" /></div>
+        <div><label>empty_response_retry_delay_ms</label><input id="empty_response_retry_delay_ms" type="number" /></div>
+        <div><label>soft_quota_threshold_percent</label><input id="soft_quota_threshold_percent" type="number" /></div>
+      </div>
+      <div class="row-actions">
+        <button id="btnSaveQuick">Save Quick Settings</button>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="panel-accounts">
+      <h3 style="margin-top:0">Account Details & Quota</h3>
+      <div class="muted">Menampilkan status akun dan kuota per akun berdasarkan cache lokal plugin.</div>
+      <div class="row-actions">
+        <button id="btnAuditAccounts" class="secondary">Audit Accounts</button>
+        <button id="btnActivateBest" class="secondary">Activate Best</button>
+        <button id="btnMaintainAccounts" class="secondary">Maintain State</button>
+      </div>
+      <div id="accountsMeta" class="status" style="margin-top:8px"></div>
+      <div id="accountsAudit" class="audit-box hidden"></div>
+      <div id="accountsContainer" class="accounts-list"></div>
+    </section>
+
+    <section class="panel hidden" id="panel-providers">
+      <h3 style="margin-top:0">Provider Setup</h3>
+      <div class="muted">Tambahkan provider Google dan ChatGPT sebagai opsi tambahan di <code>opencode.json</code>. Untuk ChatGPT/OpenAI gunakan alur auth OAuth (bukan API key manual).</div>
+      <div class="grid-2" style="margin-top:12px">
+        <div class="provider-box">
+          <div class="provider-title">
+            <strong>Google Provider</strong>
+            <label class="switch"><input type="checkbox" id="providerGoogle" /> Enable</label>
+          </div>
+          <div class="muted">Menjaga model Google/Antigravity tetap tersedia.</div>
+          <div style="margin-top:8px"><span id="googleAuthBadge" class="badge">auth: unknown</span></div>
+          <div class="row-actions">
+            <button id="btnLoginGoogle" class="secondary">Login Google</button>
+            <button id="btnLogoutGoogle" class="secondary">Logout Google</button>
+          </div>
+        </div>
+        <div class="provider-box">
+          <div class="provider-title">
+            <strong>ChatGPT Provider (OpenAI)</strong>
+            <label class="switch"><input type="checkbox" id="providerChatgpt" /> Enable</label>
+          </div>
+          <div class="muted">Menambahkan provider <code>openai</code> dengan model awal termasuk <code>gpt-5.3-codex</code>.</div>
+          <div style="margin-top:8px"><span id="chatgptAuthBadge" class="badge">auth: unknown</span></div>
+          <div class="row-actions">
+            <button id="btnLoginChatgpt" class="secondary">Login ChatGPT</button>
+            <button id="btnLogoutChatgpt" class="secondary">Logout ChatGPT</button>
+          </div>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button id="btnSaveProviders">Apply Provider Settings</button>
+        <button id="btnRefreshAuth" class="secondary">Refresh Auth Status</button>
+      </div>
+      <div id="statusProviders" class="status"></div>
+    </section>
+
+    <section class="panel hidden" id="panel-advanced">
+      <h3 style="margin-top:0">Advanced JSON</h3>
+      <div class="grid-2">
+        <div>
+          <label>antigravity.json</label>
+          <textarea id="rawAntigravity"></textarea>
+          <div class="row-actions"><button id="btnSaveRawAntigravity">Save antigravity.json</button></div>
+        </div>
+        <div>
+          <label>opencode.json</label>
+          <textarea id="rawOpencode"></textarea>
+          <div class="row-actions"><button id="btnSaveRawOpencode">Save opencode.json</button></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let currentConfig = null;
+    let currentOpencode = null;
+
+    function setStatus(id, text, ok = true) {
+      const el = $(id);
+      el.textContent = text;
+      el.className = `status ${ok ? "ok" : "err"}`;
+    }
+
+    function setProfileBadge(profile) {
+      const el = $("badgeProfile");
+      el.textContent = `profile: ${profile}`;
+      el.className = "badge";
+      if (profile === "stable") el.classList.add("ok");
+      else if (profile === "turbo") el.classList.add("warn");
+      else el.classList.add("err");
+    }
+
+    function setAccountBadges(accounts) {
+      const total = accounts?.total ?? 0;
+      const enabled = accounts?.enabled ?? 0;
+      const verification = accounts?.verificationRequired ?? 0;
+
+      $("badgeAccounts").textContent = `accounts: ${enabled}/${total} enabled`;
+      const verificationEl = $("badgeVerification");
+      verificationEl.textContent = `verification required: ${verification}`;
+      verificationEl.className = "badge";
+      verificationEl.classList.add(verification > 0 ? "warn" : "ok");
+    }
+
+    function formatTimestamp(ts) {
+      if (!ts || Number.isNaN(Number(ts))) return "-";
+      try {
+        return new Date(ts).toLocaleString();
+      } catch {
+        return "-";
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function renderAccounts(accounts) {
+      const container = $("accountsContainer");
+      const meta = $("accountsMeta");
+      const items = Array.isArray(accounts?.items) ? accounts.items : [];
+      meta.textContent = `Total ${accounts?.total ?? 0} akun | Enabled ${accounts?.enabled ?? 0} | Disabled ${accounts?.disabled ?? 0} | Needs verification ${accounts?.verificationRequired ?? 0}`;
+
+      if (items.length === 0) {
+        container.innerHTML = '<div class="provider-box">Belum ada akun terdaftar.</div>';
+        return;
+      }
+
+      container.innerHTML = items.map((acc) => {
+        const quotaRows = (acc.quota || []).map((q) => {
+          const remain = q.remainingPercent === null ? "-" : `${q.remainingPercent}%`;
+          const reset = q.resetTime && q.resetTime !== "-" ? new Date(q.resetTime).toLocaleString() : "-";
+          const count = q.modelCount == null ? "-" : q.modelCount;
+          return `<tr><td>${escapeHtml(q.family)}</td><td>${remain}</td><td>${escapeHtml(String(reset))}</td><td>${count}</td></tr>`;
+        }).join("");
+
+        const statusBadge = acc.enabled
+          ? '<span class="badge ok">enabled</span>'
+          : '<span class="badge err">disabled</span>';
+        const verifyBadge = acc.verificationRequired
+          ? '<span class="badge warn">needs verification</span>'
+          : '<span class="badge ok">verified</span>';
+
+        return `
+          <article class="account-card">
+            <div class="account-head">
+              <div>
+                <div class="account-email">${escapeHtml(acc.email)}</div>
+                <div class="muted">#${acc.index + 1} | platform: ${escapeHtml(acc.platform || "-")}</div>
+              </div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">${statusBadge}${verifyBadge}</div>
+            </div>
+            <div class="kv">
+              <div>Last used: ${escapeHtml(formatTimestamp(acc.lastUsed))}</div>
+              <div>Added: ${escapeHtml(formatTimestamp(acc.addedAt))}</div>
+              <div style="grid-column: 1 / -1;">User-Agent: ${escapeHtml(acc.userAgent || "-")}</div>
+            </div>
+            <table class="quota-table">
+              <thead><tr><th>Family</th><th>Remaining</th><th>Reset</th><th>Models</th></tr></thead>
+              <tbody>${quotaRows || '<tr><td colspan="4" class="muted">No quota cache</td></tr>'}</tbody>
+            </table>
+          </article>`;
+      }).join("");
+    }
+
+    function renderAudit(audit) {
+      const el = $("accountsAudit");
+      if (!audit || !Array.isArray(audit.ranked) || audit.ranked.length === 0) {
+        el.classList.add("hidden");
+        el.innerHTML = "";
+        return;
+      }
+
+      const lookup = new Map(audit.ranked.map((item) => [item.index, item]));
+      const overall = lookup.get(audit.recommendedOverall);
+      const gemini = lookup.get(audit.recommendedGemini);
+      const claude = lookup.get(audit.recommendedClaude);
+
+      const rankRows = audit.ranked.map((item, idx) => `
+        <tr>
+          <td>#${idx + 1}</td>
+          <td>${escapeHtml(item.email)}</td>
+          <td>${item.gemini.toFixed(2)}</td>
+          <td>${item.claudeScore.toFixed(2)}</td>
+          <td>${item.overall.toFixed(2)}</td>
+        </tr>`).join("");
+
+      el.innerHTML = `
+        <div class="audit-grid">
+          <div class="audit-item"><strong>Overall</strong>${overall ? `#${overall.index + 1} - ${escapeHtml(overall.email)}` : "-"}</div>
+          <div class="audit-item"><strong>Gemini</strong>${gemini ? `#${gemini.index + 1} - ${escapeHtml(gemini.email)}` : "-"}</div>
+          <div class="audit-item"><strong>Claude</strong>${claude ? `#${claude.index + 1} - ${escapeHtml(claude.email)}` : "-"}</div>
+        </div>
+        <table class="quota-table">
+          <thead><tr><th>Rank</th><th>Account</th><th>Gemini</th><th>Claude</th><th>Overall</th></tr></thead>
+          <tbody>${rankRows}</tbody>
+        </table>`;
+      el.classList.remove("hidden");
+    }
+
+    function setProviderAuthBadges(authStatus) {
+      const googleAuthed = Boolean(authStatus?.google);
+      const chatgptAuthed = Boolean(authStatus?.chatgpt);
+
+      const google = $("googleAuthBadge");
+      google.textContent = googleAuthed ? "auth: connected" : "auth: not connected";
+      google.className = `badge ${googleAuthed ? "ok" : "warn"}`;
+
+      const chatgpt = $("chatgptAuthBadge");
+      chatgpt.textContent = chatgptAuthed ? "auth: connected" : "auth: not connected";
+      chatgpt.className = `badge ${chatgptAuthed ? "ok" : "warn"}`;
+    }
+
+    function fillQuick(cfg) {
+      const keys = [
+        "account_selection_strategy",
+        "scheduling_mode",
+        "max_rate_limit_wait_seconds",
+        "max_cache_first_wait_seconds",
+        "default_retry_after_seconds",
+        "max_backoff_seconds",
+        "request_jitter_max_ms",
+        "empty_response_max_attempts",
+        "empty_response_retry_delay_ms",
+        "soft_quota_threshold_percent"
+      ];
+      for (const key of keys) {
+        if ($(key)) $(key).value = cfg[key] ?? "";
+      }
+    }
+
+    function readQuickIntoConfig(cfg) {
+      const out = { ...cfg };
+      const num = (id) => Number($(id).value);
+      out.account_selection_strategy = $("account_selection_strategy").value;
+      out.scheduling_mode = $("scheduling_mode").value;
+      out.max_rate_limit_wait_seconds = num("max_rate_limit_wait_seconds");
+      out.max_cache_first_wait_seconds = num("max_cache_first_wait_seconds");
+      out.default_retry_after_seconds = num("default_retry_after_seconds");
+      out.max_backoff_seconds = num("max_backoff_seconds");
+      out.request_jitter_max_ms = num("request_jitter_max_ms");
+      out.empty_response_max_attempts = num("empty_response_max_attempts");
+      out.empty_response_retry_delay_ms = num("empty_response_retry_delay_ms");
+      out.soft_quota_threshold_percent = num("soft_quota_threshold_percent");
+      return out;
+    }
+
+    async function saveAntigravity(config) {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed saving antigravity.json");
+    }
+
+    async function saveOpencode(config) {
+      const res = await fetch("/api/opencode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed saving opencode.json");
+    }
+
+    async function applyProviders() {
+      const res = await fetch("/api/providers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          google: $("providerGoogle").checked,
+          chatgpt: $("providerChatgpt").checked
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed applying providers");
+      await loadAll();
+      setStatus("statusProviders", "Provider settings updated. Restart opencode session if needed.", true);
+    }
+
+    async function launchProviderLogin(provider) {
+      const res = await fetch("/api/providers/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed opening login terminal");
+      setStatus("statusProviders", `${data.message}. Selesaikan login lalu klik Refresh Auth Status.`, true);
+    }
+
+    async function launchProviderLogout(provider) {
+      const res = await fetch("/api/providers/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed opening logout terminal");
+      setStatus("statusProviders", `${data.message} Setelah selesai, klik Refresh Auth Status.`, true);
+    }
+
+    async function activateProfile(profile) {
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed activating profile");
+      await loadAll();
+      setStatus("statusTop", `${profile} profile activated. Restart opencode session.`, true);
+    }
+
+    async function loadAudit() {
+      const res = await fetch("/api/accounts/audit");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed loading account audit");
+      renderAudit(data);
+      setStatus("accountsMeta", "Account audit refreshed.", true);
+    }
+
+    async function activateBest() {
+      const res = await fetch("/api/accounts/activate-best", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed activating best accounts");
+      renderAudit(data.audit);
+      await loadAll();
+      setStatus("accountsMeta", data.message, true);
+    }
+
+    async function maintainAccounts() {
+      const res = await fetch("/api/accounts/maintain", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed running maintenance");
+      await loadAll();
+      setStatus("accountsMeta", (data.output || "Maintenance completed.").trim(), true);
+    }
+
+    async function loadAll() {
+      const res = await fetch("/api/bootstrap");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed loading data");
+
+      currentConfig = data.current;
+      currentOpencode = data.opencode;
+
+      fillQuick(currentConfig);
+      $("rawAntigravity").value = JSON.stringify(currentConfig, null, 2);
+      $("rawOpencode").value = JSON.stringify(currentOpencode, null, 2);
+
+      $("providerGoogle").checked = Boolean(data.providers?.google);
+      $("providerChatgpt").checked = Boolean(data.providers?.chatgpt);
+      setProviderAuthBadges(data.authStatus || {});
+
+      setProfileBadge(data.activeProfile || "custom");
+      setAccountBadges(data.accounts || {});
+      renderAccounts(data.accounts || {});
+      setStatus("statusTop", "Config loaded. CLI and web setting are both active.", true);
+    }
+
+    function activateTab(tabName) {
+      const map = {
+        quick: "panel-quick",
+        accounts: "panel-accounts",
+        providers: "panel-providers",
+        advanced: "panel-advanced"
+      };
+      for (const [key, panelId] of Object.entries(map)) {
+        const panel = $(panelId);
+        const btn = document.querySelector(`.tab[data-tab="${key}"]`);
+        if (key === tabName) {
+          panel.classList.remove("hidden");
+          btn.classList.add("active");
+        } else {
+          panel.classList.add("hidden");
+          btn.classList.remove("active");
+        }
+      }
+    }
+
+    document.querySelectorAll(".tab").forEach((btn) => {
+      btn.addEventListener("click", () => activateTab(btn.dataset.tab));
+    });
+
+    $("btnReload").onclick = () => loadAll().catch((e) => setStatus("statusTop", e.message, false));
+    $("btnProfileStable").onclick = () => activateProfile("stable").catch((e) => setStatus("statusTop", e.message, false));
+    $("btnProfileTurbo").onclick = () => activateProfile("turbo").catch((e) => setStatus("statusTop", e.message, false));
+
+    $("btnSaveQuick").onclick = async () => {
+      try {
+        const next = readQuickIntoConfig(currentConfig || {});
+        await saveAntigravity(next);
+        await loadAll();
+        setStatus("statusTop", "Quick settings saved. Restart opencode session for full effect.", true);
+      } catch (e) {
+        setStatus("statusTop", e.message, false);
+      }
+    };
+
+    $("btnSaveProviders").onclick = () => applyProviders().catch((e) => setStatus("statusProviders", e.message, false));
+    $("btnRefreshAuth").onclick = () => loadAll().then(() => setStatus("statusProviders", "Auth status refreshed.", true)).catch((e) => setStatus("statusProviders", e.message, false));
+    $("btnLoginGoogle").onclick = () => launchProviderLogin("google").catch((e) => setStatus("statusProviders", e.message, false));
+    $("btnLoginChatgpt").onclick = () => launchProviderLogin("chatgpt").catch((e) => setStatus("statusProviders", e.message, false));
+    $("btnLogoutGoogle").onclick = () => launchProviderLogout("google").catch((e) => setStatus("statusProviders", e.message, false));
+    $("btnLogoutChatgpt").onclick = () => launchProviderLogout("chatgpt").catch((e) => setStatus("statusProviders", e.message, false));
+    $("btnAuditAccounts").onclick = () => loadAudit().catch((e) => setStatus("accountsMeta", e.message, false));
+    $("btnActivateBest").onclick = () => activateBest().catch((e) => setStatus("accountsMeta", e.message, false));
+    $("btnMaintainAccounts").onclick = () => maintainAccounts().catch((e) => setStatus("accountsMeta", e.message, false));
+
+    $("btnSaveRawAntigravity").onclick = async () => {
+      try {
+        const parsed = JSON.parse($("rawAntigravity").value);
+        await saveAntigravity(parsed);
+        await loadAll();
+        setStatus("statusTop", "Saved antigravity.json", true);
+      } catch (e) {
+        setStatus("statusTop", `antigravity.json error: ${e.message}`, false);
+      }
+    };
+
+    $("btnSaveRawOpencode").onclick = async () => {
+      try {
+        const parsed = JSON.parse($("rawOpencode").value);
+        await saveOpencode(parsed);
+        await loadAll();
+        setStatus("statusTop", "Saved opencode.json", true);
+      } catch (e) {
+        setStatus("statusTop", `opencode.json error: ${e.message}`, false);
+      }
+    };
+
+    loadAll().catch((e) => setStatus("statusTop", e.message, false));
+  </script>
+</body>
+</html>

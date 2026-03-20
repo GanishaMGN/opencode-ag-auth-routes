@@ -8,7 +8,6 @@ antigravity-signature-cache.json
 *.bak
 
 # File debug/script personal
-antigravity-web.html
 check-quota-debug.js
 inspect-native.js
 

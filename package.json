@@ -1,7 +1,8 @@
 {
   "scripts": {
     "postinstall": "patch-package",
-    "maint:normalize-state": "node normalize-antigravity-state.js"
+    "maint:normalize-state": "node normalize-antigravity-state.js",
+    "audit:accounts": "node audit-antigravity-accounts.js"
   },
   "dependencies": {
     "@opencode-ai/plugin": "1.2.25",
