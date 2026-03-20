@@ -1,6 +1,7 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const { pathToFileURL } = require("node:url");
 const { execSync, spawn } = require("node:child_process");
 
 const HOST = process.env.AG_WEB_HOST || "127.0.0.1";
@@ -382,6 +383,40 @@ function launchProviderLogout() {
   }).unref();
 }
 
+function launchAuthMenuWithHint(hint) {
+  const safeHint = String(hint || "Select the desired action in the auth menu.").replaceAll('"', '\\"');
+  if (process.platform === "win32") {
+    const command = `title Antigravity Auth Menu && cls && echo ${safeHint} && echo. && opencode auth login`;
+    spawn("cmd.exe", ["/c", "start", "", "cmd", "/k", command], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: false,
+    }).unref();
+    return;
+  }
+  spawn("sh", ["-lc", `printf '%s\n\n' ${JSON.stringify(safeHint)}; opencode auth login`], {
+    detached: true,
+    stdio: "ignore",
+  }).unref();
+}
+
+async function configureModelsInOpencode() {
+  const updaterPath = pathToFileURL(path.join(CONFIG_DIR, "node_modules", "opencode-ag-auth", "dist", "src", "plugin", "config", "updater.js")).href;
+  const mod = await import(updaterPath);
+  return await mod.updateOpencodeConfig({ configPath: OPENCODE_CONFIG_PATH });
+}
+
+function clearAllAccountsLocal() {
+  const empty = {
+    version: 4,
+    accounts: [],
+    activeIndex: 0,
+    activeIndexByFamily: { claude: 0, gemini: 0 },
+  };
+  writeJson(ACCOUNTS_PATH, empty);
+  return empty;
+}
+
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
@@ -622,6 +657,46 @@ function handleApi(req, res) {
         message: "Activated best-ranked accounts for overall, Gemini, and Claude.",
         ...result,
       });
+    } catch (error) {
+      return sendJson(res, 400, { ok: false, error: String(error.message || error) });
+    }
+  }
+
+  if (req.method === "POST" && req.url === "/api/accounts/add") {
+    launchAuthMenuWithHint("Choose 'Add account' in the auth menu.");
+    return sendJson(res, 200, { ok: true, message: "Opened auth menu terminal for Add account." });
+  }
+
+  if (req.method === "POST" && req.url === "/api/accounts/check-quotas") {
+    launchAuthMenuWithHint("Choose 'Check quotas' in the auth menu.");
+    return sendJson(res, 200, { ok: true, message: "Opened auth menu terminal for Check quotas." });
+  }
+
+  if (req.method === "POST" && req.url === "/api/accounts/verify-one") {
+    launchAuthMenuWithHint("Choose 'Verify one account' in the auth menu.");
+    return sendJson(res, 200, { ok: true, message: "Opened auth menu terminal for Verify one account." });
+  }
+
+  if (req.method === "POST" && req.url === "/api/accounts/verify-all") {
+    launchAuthMenuWithHint("Choose 'Verify all accounts' in the auth menu.");
+    return sendJson(res, 200, { ok: true, message: "Opened auth menu terminal for Verify all accounts." });
+  }
+
+  if (req.method === "POST" && req.url === "/api/accounts/configure-models") {
+    return configureModelsInOpencode()
+      .then((result) => {
+        if (!result.success) {
+          throw new Error(result.error || "Failed to configure models");
+        }
+        return sendJson(res, 200, { ok: true, message: `Models configured in ${result.configPath}` });
+      })
+      .catch((error) => sendJson(res, 400, { ok: false, error: String(error.message || error) }));
+  }
+
+  if (req.method === "POST" && req.url === "/api/accounts/delete-all") {
+    try {
+      clearAllAccountsLocal();
+      return sendJson(res, 200, { ok: true, message: "All local accounts deleted. Run Add account to reauthenticate." });
     } catch (error) {
       return sendJson(res, 400, { ok: false, error: String(error.message || error) });
     }

@@ -305,6 +305,15 @@
       <h3 style="margin-top:0">Account Details & Quota</h3>
       <div class="muted">Menampilkan status akun dan kuota per akun berdasarkan cache lokal plugin.</div>
       <div class="row-actions">
+        <button id="btnAddAccount" class="secondary">Add Account</button>
+        <button id="btnCheckQuotas" class="secondary">Check Quotas</button>
+        <button id="btnVerifyOne" class="secondary">Verify One</button>
+        <button id="btnVerifyAll" class="secondary">Verify All</button>
+        <button id="btnConfigureModels" class="secondary">Configure Models</button>
+        <button id="btnDeleteAllAccounts" class="secondary">Delete All</button>
+      </div>
+      <div class="muted">Aksi CLI yang masih interaktif akan membuka terminal auth menu dengan petunjuk tindakan yang harus dipilih.</div>
+      <div class="row-actions">
         <button id="btnAuditAccounts" class="secondary">Audit Accounts</button>
         <button id="btnActivateBest" class="secondary">Activate Best</button>
         <button id="btnMaintainAccounts" class="secondary">Maintain State</button>
@@ -696,6 +705,18 @@
       setStatus("accountsMeta", data.message, true);
     }
 
+    async function runAccountAction(path, body) {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Account action failed");
+      await loadAll();
+      setStatus("accountsMeta", data.message, true);
+    }
+
     async function loadAll() {
       const res = await fetch("/api/bootstrap");
       const data = await res.json();
@@ -768,6 +789,15 @@
     $("btnMaintainAccounts").onclick = () => maintainAccounts().catch((e) => setStatus("accountsMeta", e.message, false));
     $("btnExportSnapshot").onclick = () => exportSnapshot().catch((e) => setStatus("accountsMeta", e.message, false));
     $("btnImportSnapshot").onclick = () => importSnapshot().catch((e) => setStatus("accountsMeta", e.message, false));
+    $("btnAddAccount").onclick = () => runAccountAction("/api/accounts/add").catch((e) => setStatus("accountsMeta", e.message, false));
+    $("btnCheckQuotas").onclick = () => runAccountAction("/api/accounts/check-quotas").catch((e) => setStatus("accountsMeta", e.message, false));
+    $("btnVerifyOne").onclick = () => runAccountAction("/api/accounts/verify-one").catch((e) => setStatus("accountsMeta", e.message, false));
+    $("btnVerifyAll").onclick = () => runAccountAction("/api/accounts/verify-all").catch((e) => setStatus("accountsMeta", e.message, false));
+    $("btnConfigureModels").onclick = () => runAccountAction("/api/accounts/configure-models").catch((e) => setStatus("accountsMeta", e.message, false));
+    $("btnDeleteAllAccounts").onclick = () => {
+      if (!confirm("Delete all local accounts? This cannot be undone.")) return;
+      runAccountAction("/api/accounts/delete-all").catch((e) => setStatus("accountsMeta", e.message, false));
+    };
 
     window.setAccountActive = (index) => setAccountActive(index).catch((e) => setStatus("accountsMeta", e.message, false));
 
